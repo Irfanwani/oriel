@@ -1,0 +1,43 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Package and publish
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Package universal app
+        env:
+          VERSION: ${{ github.ref_name }}
+        run: |
+          VERSION="${VERSION#v}"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          VERSION="$VERSION" ARCH=universal ./scripts/package.sh
+
+      - name: Verify package
+        run: |
+          codesign --verify --deep --strict build/Oriel.app
+          lipo -info build/Oriel.app/Contents/MacOS/Oriel
+          hdiutil verify "dist/Oriel-$VERSION.dmg"
+          cat "dist/Oriel-$VERSION.dmg.sha256"
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --title "Oriel ${VERSION}" \
+            --generate-notes \
+            "dist/Oriel-${VERSION}.dmg" \
+            "dist/Oriel-${VERSION}.dmg.sha256"

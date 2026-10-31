@@ -1,0 +1,25 @@
+# Build products
+.build/
+.build-tools/
+build/
+dist/
+DerivedData/
+*.xcarchive
+
+# macOS
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+
+# Xcode / Swift
+*.xcodeproj
+*.xcworkspace
+xcuserdata/
+.swiftpm/
+Package.resolved
+
+# Release scratch
+*.dmg
+*.zip
+*.sha256

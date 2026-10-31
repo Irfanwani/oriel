@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Oriel — A calmer desktop for macOS</title>
+  <meta name="description" content="Oriel is a native macOS auto-tiling window manager with Bento layouts, scenes, floating app rules, Overview, Focus and CLI automation. Open source, private, no subscription.">
+  <meta property="og:title" content="Oriel — A calmer desktop for macOS">
+  <meta property="og:description" content="Automatic tiling, five layouts, scenes and a quiet menu-bar app. Native, open source, no tracking.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://irfanwani.github.io/oriel/">
+  <meta property="og:image" content="https://irfanwani.github.io/oriel/social-preview.png">
+  <meta name="theme-color" content="#0a0b0f">
+  <link rel="icon" href="icon.png" type="image/png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="#top" aria-label="Oriel home">
+      <img src="icon.png" alt="" width="34" height="34">
+      <span>Oriel</span>
+    </a>
+    <nav aria-label="Primary">
+      <a href="#features">Features</a>
+      <a href="#screens">Screens</a>
+      <a href="#install">Install</a>
+      <a href="#privacy">Privacy</a>
+      <a class="nav-github" href="https://github.com/Irfanwani/oriel">GitHub</a>
+      <a class="nav-button" href="https://github.com/Irfanwani/oriel/releases/latest">Download</a>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="hero shell">
+      <div class="hero-copy">
+        <div class="eyebrow"><span class="dot"></span> Open source · macOS 14+</div>
+        <h1>A calmer desktop for macOS.</h1>
+        <p class="lede">Oriel gives every window a place, then quietly keeps it there. Five layouts, saved scenes, floating app rules, and a window map — without subscriptions, accounts, or fuss.</p>
+
+        <div class="brew">
+          <code id="brew-command">brew install --cask irfanwani/oriel/oriel</code>
+          <button class="copy" type="button" data-copy="brew install --cask irfanwani/oriel/oriel" aria-label="Copy Homebrew command">Copy</button>
+        </div>
+
+        <div class="actions">
+          <a class="button primary" href="https://github.com/Irfanwani/oriel/releases/latest">Download for macOS</a>
+          <a class="button secondary" href="https://github.com/Irfanwani/oriel">View source</a>
+        </div>
+        <p class="fineprint">Universal binary · MIT licensed · Ad-hoc signed, no Apple Developer account required</p>
+      </div>
+
+      <div class="hero-art" aria-label="An illustration of Oriel's Bento layout">
+        <div class="glow glow-a"></div>
+        <div class="glow glow-b"></div>
+        <div class="desktop">
+          <div class="menu-strip">
+            <span class="apple"></span>
+            <span class="menu-strong">Oriel</span>
+            <span>File</span><span>Window</span><span>Help</span>
+            <span class="menu-right">Sat 9:41</span>
+          </div>
+          <div class="tiles">
+            <article class="tile tile-hero active">
+              <div class="titlebar"><i></i><i></i><i></i><span>Plan the week</span></div>
+              <div class="tile-content hero-content">
+                <p class="kicker">THIS WEEK</p>
+                <h2>Make room for<br><em>the work that matters.</em></h2>
+                <div class="lines">
+                  <span class="wide"></span><span></span><span class="short"></span>
+                </div>
+              </div>
+            </article>
+            <article class="tile tile-notes">
+              <div class="titlebar"><i></i><i></i><i></i><span>Client notes</span></div>
+              <div class="tile-content note-content">
+                <p class="kicker">THURSDAY</p>
+                <h3>A quieter kind<br>of focus.</h3>
+                <div class="lines warm">
+                  <span class="wide"></span><span></span><span class="short"></span>
+                </div>
+              </div>
+            </article>
+            <article class="tile tile-check">
+              <div class="titlebar"><i></i><i></i><i></i><span>Launch checklist</span></div>
+              <div class="tile-content">
+                <p class="kicker">READY, QUIETLY</p>
+                <ul class="checks">
+                  <li><b>✓</b> Icon and bundle</li>
+                  <li><b>✓</b> Accessibility flow</li>
+                  <li><b>✓</b> Layout engine tests</li>
+                  <li class="pending"><b>○</b> Homebrew cask</li>
+                </ul>
+              </div>
+            </article>
+            <article class="tile tile-reading">
+              <div class="titlebar"><i></i><i></i><i></i><span>Reading list</span></div>
+              <div class="tile-content">
+                <p class="kicker">SLOW INPUTS</p>
+                <h3>Ways of<br>Seeing</h3>
+                <div class="lines">
+                  <span></span><span class="wide"></span><span class="short"></span>
+                </div>
+              </div>
+            </article>
+          </div>
+          <div class="desktop-badge"><strong>Bento</strong><span>4 windows · built-in display</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="trust shell" aria-label="Highlights">
+      <div><strong>5</strong><span>layouts, per display</span></div>
+      <div><strong>0</strong><span>accounts or trackers</span></div>
+      <div><strong>100%</strong><span>native AppKit + SwiftUI</span></div>
+      <div><strong>MIT</strong><span>free and open source</span></div>
+    </section>
+
+    <section class="section shell" id="features">
+      <div class="section-head">
+        <p class="eyebrow">Everything in its place</p>
+        <h2>Small features.<br>A noticeably quieter day.</h2>
+        <p>Oriel is designed around the moments when a desktop gets messy: a new window opens, a call starts, a project changes.</p>
+      </div>
+
+      <div class="features">
+        <article class="feature">
+          <div class="icon">▦</div>
+          <h3>Automatic tiling</h3>
+          <p>Windows find a tile as they open. Close one and the rest fill the space. No dragging, no saved canvas to maintain.</p>
+        </article>
+        <article class="feature">
+          <div class="icon">◫</div>
+          <h3>A real Bento layout</h3>
+          <p>An editorial arrangement with one hero window and supporting panes. Five layouts in total, each with its own personality.</p>
+        </article>
+        <article class="feature">
+          <div class="icon">▤</div>
+          <h3>Scenes</h3>
+          <p>Save apps, window order, floating membership and per-display layouts. Bring the whole arrangement back in one click.</p>
+        </article>
+        <article class="feature">
+          <div class="icon">⌘</div>
+          <h3>Keyboard first</h3>
+          <p>Swap, resize, focus, cycle stacks, change layouts and restore scenes from quiet global shortcuts.</p>
+        </article>
+        <article class="feature">
+          <div class="icon">◎</div>
+          <h3>Overview &amp; Focus</h3>
+          <p>See every window as a map, or expand the one that matters and put the room back exactly as it was.</p>
+        </article>
+        <article class="feature">
+          <div class="icon">◐</div>
+          <h3>Made for sharing</h3>
+          <p>No Peek dims everything but the active window. Clean Space leaves a plain backdrop for calls and screenshots.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section shell split" id="screens">
+      <div class="split-copy">
+        <p class="eyebrow">Own the arrangement</p>
+        <h2>Your desktop,<br>remembered.</h2>
+        <p>App rules keep utility windows floating. Scenes remember the rest. Every display can have a different layout, capacity and main-window size.</p>
+        <ul class="ticks">
+          <li>Floating apps and exclusion lists</li>
+          <li>Scene restore launches closed apps</li>
+          <li>Per-display overrides that actually stick</li>
+          <li>Stacked overflow or gentle floating overflow</li>
+        </ul>
+        <a class="text-link" href="https://github.com/Irfanwani/oriel#how-it-works">How it works <span>→</span></a>
+      </div>
+      <figure class="screenshot">
+        <img src="settings.png" alt="Oriel Settings window showing automatic tiling, login behavior and Accessibility status" loading="lazy">
+        <figcaption>Settings are local, plain and fast.</figcaption>
+      </figure>
+    </section>
+
+    <section class="section shell split reverse" id="privacy">
+      <figure class="code-card">
+        <div class="code-head">
+          <span class="terminal-dots"><i></i><i></i><i></i></span>
+          <span>oriel — zsh</span>
+        </div>
+        <pre><code><span class="prompt">$</span> oriel layout bento
+<span class="dim">Bento · 4 windows on Built-in Display</span>
+
+<span class="prompt">$</span> oriel scene <span class="string">"Deep work"</span>
+<span class="dim">Scene restored · 3 windows</span>
+
+<span class="prompt">$</span> oriel clean-space
+<span class="dim">A plain backdrop for sharing</span>
+
+<span class="prompt">$</span> oriel overview
+<span class="dim">Every window, mapped</span></code></pre>
+        <div class="code-foot">Also available as <code>oriel://</code> URLs for Shortcuts, Raycast and scripts.</div>
+      </figure>
+      <div class="split-copy">
+        <p class="eyebrow">Private by construction</p>
+        <h2>A desktop tool<br>that stays local.</h2>
+        <p>No telemetry. No account. No network calls. Oriel asks for Accessibility because macOS requires it to move windows — and uses it for geometry and nothing else.</p>
+        <ul class="ticks">
+          <li>Never reads what is inside your windows</li>
+          <li>No Screen Recording or Input Monitoring</li>
+          <li>No keyboard event tap</li>
+          <li>Settings and scenes stay on your Mac</li>
+        </ul>
+        <a class="text-link" href="https://github.com/Irfanwani/oriel/blob/main/SECURITY.md">Read the privacy model <span>→</span></a>
+      </div>
+    </section>
+
+    <section class="section install" id="install">
+      <div class="shell install-inner">
+        <div class="install-copy">
+          <p class="eyebrow">One command</p>
+          <h2>Install Oriel.</h2>
+          <p>Homebrew installs the app in Applications and puts the <code>oriel</code> command on your path. macOS 14 Sonoma or later.</p>
+        </div>
+        <div class="install-card">
+          <div class="brew big">
+            <code>brew install --cask<br>irfanwani/oriel/oriel</code>
+            <button class="copy" type="button" data-copy="brew install --cask irfanwani/oriel/oriel" aria-label="Copy Homebrew command">Copy</button>
+          </div>
+          <ol class="steps">
+            <li><span>1</span> Install with Homebrew, or download the DMG.</li>
+            <li><span>2</span> Open Oriel and grant Accessibility.</li>
+            <li><span>3</span> Pick a layout. Start working.</li>
+          </ol>
+          <p class="fineprint">Oriel is ad-hoc signed. Gatekeeper may ask for approval on first launch, and updates may require re-granting Accessibility. <a href="https://github.com/Irfanwani/oriel#troubleshooting">Troubleshooting →</a></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section shell final">
+      <div>
+        <p class="eyebrow">A calmer desktop</p>
+        <h2>Make room for<br>the work that matters.</h2>
+      </div>
+      <div class="final-actions">
+        <a class="button primary" href="https://github.com/Irfanwani/oriel/releases/latest">Download Oriel</a>
+        <a class="button secondary" href="https://github.com/Irfanwani/oriel">Star on GitHub</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer shell">
+    <div class="footer-brand">
+      <img src="icon.png" alt="" width="26" height="26">
+      <span>Oriel</span>
+      <span class="muted">A calmer desktop for macOS.</span>
+    </div>
+    <div class="footer-links">
+      <a href="https://github.com/Irfanwani/oriel">GitHub</a>
+      <a href="https://github.com/Irfanwani/oriel/issues">Issues</a>
+      <a href="https://github.com/Irfanwani/oriel/blob/main/LICENSE">MIT License</a>
+      <span>© 2026 Irfan Wani</span>
+    </div>
+  </footer>
+
+  <script>
+    const copyButtons = document.querySelectorAll("[data-copy]");
+    copyButtons.forEach((button) => {
+      button.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(button.dataset.copy);
+          const label = button.textContent;
+          button.textContent = "Copied";
+          window.setTimeout(() => { button.textContent = label; }, 1400);
+        } catch {
+          button.textContent = "Select above";
+          window.setTimeout(() => { button.textContent = "Copy"; }, 1400);
+        }
+      });
+    });
+  </script>
+</body>
+</html>

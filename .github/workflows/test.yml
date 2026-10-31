@@ -1,0 +1,37 @@
+name: Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Build and test
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: |
+          sw_vers
+          swift --version
+
+      - name: Unit tests
+        run: swift test
+
+      - name: Build app
+        run: ./scripts/build.sh
+
+      - name: Verify ad-hoc signature
+        run: codesign --verify --deep --strict build/Oriel.app
+
+      - name: Show bundle
+        run: |
+          file build/Oriel.app/Contents/MacOS/Oriel
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' build/Oriel.app/Contents/Info.plist

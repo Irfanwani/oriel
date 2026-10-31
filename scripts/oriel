@@ -1,0 +1,89 @@
+#!/bin/sh
+# Oriel CLI — a tiny front door to the app's URL API.
+set -eu
+
+APP_URL="oriel://"
+
+usage() {
+  cat <<'EOF'
+Oriel — a calmer desktop for macOS
+
+Usage:
+  oriel layout [grid|columns|rows|side|bento|next|previous]
+  oriel count [1-5]
+  oriel scene "Deep Work"           Restore a saved scene
+  oriel save-scene "Deep Work"      Save the current arrangement
+  oriel focus
+  oriel float                       Float or tile the active window
+  oriel no-peek
+  oriel clean-space
+  oriel retile
+  oriel pause
+  oriel resume
+  oriel overview
+  oriel settings [general|layout|appearance|shortcuts|apps|scenes|about]
+  oriel version
+
+Examples:
+  oriel layout bento
+  oriel scene "Client call"
+  oriel count 3
+
+The app must be running for commands other than the first launch.
+EOF
+}
+
+urlencode() {
+  # JXA ships with every supported macOS version, unlike python3.
+  /usr/bin/osascript -l JavaScript -e \
+    'function run(argv) { return encodeURIComponent(argv[0]); }' "$1"
+}
+
+open_url() {
+  /usr/bin/open -g "$APP_URL$1"
+}
+
+case "${1:-}" in
+  layout)
+    case "${2:-}" in
+      grid|columns|rows|side|bento|next|previous) open_url "layout/${2}" ;;
+      "") echo "Choose a layout: grid, columns, rows, side, bento, next, previous" >&2; exit 1 ;;
+      *) echo "Unknown layout: ${2}" >&2; exit 1 ;;
+    esac
+    ;;
+  count)
+    case "${2:-}" in
+      1|2|3|4|5) open_url "count/${2}" ;;
+      *) echo "Count must be 1-5" >&2; exit 1 ;;
+    esac
+    ;;
+  scene)
+    if [ -z "${2:-}" ]; then echo "Give the scene a name" >&2; exit 1; fi
+    open_url "scene/$(urlencode "$2")"
+    ;;
+  save-scene)
+    if [ -z "${2:-}" ]; then echo "Give the scene a name" >&2; exit 1; fi
+    open_url "save-scene/$(urlencode "$2")"
+    ;;
+  settings)
+    case "${2:-}" in
+      "") open_url "settings" ;;
+      general|layout|appearance|shortcuts|apps|scenes|about) open_url "settings/${2}" ;;
+      *) echo "Unknown settings page: ${2}" >&2; exit 1 ;;
+    esac
+    ;;
+  focus|float|no-peek|clean-space|retile|pause|resume|overview)
+    open_url "$1"
+    ;;
+  version|--version)
+    echo "Oriel CLI 1.0.0"
+    ;;
+  ""|-h|--help|help)
+    usage
+    ;;
+  *)
+    echo "Unknown command: $1" >&2
+    usage >&2
+    exit 1
+    ;;
+esac
