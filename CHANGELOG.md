@@ -2,6 +2,12 @@
 
 All notable changes to Oriel are documented here. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project follows [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- Version bumps on `main` now create the release tag automatically after tests pass, then publish the app and update the Homebrew tap.
+
 ## [1.0.0] - 2026-10-31
 
 The first public release.

@@ -272,7 +272,7 @@ Choose **Troubleshooting…** from the menu bar to see Accessibility state, mana
 
 ## Contributing
 
-Bug reports, design notes and pull requests are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md) and the [open issues](https://github.com/Irfanwani/oriel/issues). Maintainers can follow [RELEASING.md](RELEASING.md) for the tag-driven release and Homebrew update flow.
+Bug reports, design notes and pull requests are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md) and the [open issues](https://github.com/Irfanwani/oriel/issues). Maintainers can follow [RELEASING.md](RELEASING.md) for the automatic release and Homebrew update flow.
 
 ## License
 

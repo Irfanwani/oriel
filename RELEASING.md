@@ -1,6 +1,6 @@
 # Releasing Oriel
 
-Oriel releases are tag-driven. Pushing a version tag builds and publishes the app; the Homebrew tap mirrors the published release automatically.
+Oriel uses tag-based releases. A version bump pushed to `main` is tagged and released automatically once the **Test** workflow passes. The published release then flows into the Homebrew tap without manual edits.
 
 ## One-time tap token setup
 
@@ -10,7 +10,7 @@ Immediate tap updates use a `TAP_TOKEN` secret in `Irfanwani/oriel`.
 2. Give it **Contents: Read and write** permission.
 3. Add it to `Irfanwani/oriel` under **Settings → Secrets and variables → Actions** as `TAP_TOKEN`.
 
-The token is optional. Without it, the tap's scheduled `Update cask` workflow checks GitHub Releases once an hour and mirrors the latest version.
+If the token is missing or rejected, the release still succeeds and the tap's scheduled `Update cask` workflow mirrors the release within an hour.
 
 ## Release checklist
 
@@ -27,18 +27,45 @@ The token is optional. Without it, the tap's scheduled `Update cask` workflow ch
    ARCH=universal ./scripts/package.sh
    ```
 
-4. Commit the version bump.
-5. Tag and push:
+4. Commit the version bump and push `main`:
 
    ```sh
-   git tag -a v1.0.1 -m "Oriel 1.0.1"
    git push origin main
-   git push origin v1.0.1
    ```
 
-6. The **Release** workflow creates the GitHub Release and uploads the DMG + SHA256.
-7. If `TAP_TOKEN` is configured, it dispatches the tap updater immediately. Otherwise the tap updates within an hour.
-8. The tap workflow updates `Casks/oriel.rb`, verifies installation, and commits the new version/SHA.
+5. Watch the workflow chain in the Actions tab:
+   - **Test** builds and verifies the app.
+   - **Auto release** runs after a successful Test. It reads `CFBundleShortVersionString`, checks that the tested commit is still the head of `main`, creates the matching `vX.Y.Z` tag, and dispatches **Release**.
+   - **Release** checks that the tag matches `Resources/Info.plist`, builds the universal DMG, and publishes the GitHub Release.
+   - **Update cask** audits and installs the new cask, then commits the version and SHA256 to the tap.
+
+6. Confirm the new version installs:
+
+   ```sh
+   brew update
+   brew upgrade --cask irfanwani/oriel/oriel
+   oriel version
+   ```
+
+No manual tag is required. If the version tag and release already exist, or the tested commit is no longer the head of `main`, **Auto release** exits successfully without changing anything.
+
+## Manual releases and retries
+
+A manually pushed tag is still supported, as long as the tag matches `Resources/Info.plist`:
+
+```sh
+git tag -a v1.0.1 -m "Oriel 1.0.1"
+git push origin v1.0.1
+```
+
+- If **Auto release** failed before creating the tag, run it manually from **Actions → Auto release → Run workflow** on `main`.
+- If the tag exists but the release is missing or failed, run the release workflow on that tag:
+
+  ```sh
+  gh workflow run release.yml --ref v1.0.1
+  ```
+
+- Re-running **Release** for an already published tag is a no-op; it will not rebuild or replace release assets.
 
 ## Homebrew tap maintenance
 
