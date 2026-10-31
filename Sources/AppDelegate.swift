@@ -97,7 +97,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func observeWorkspace() {
         let center = NSWorkspace.shared.notificationCenter
         let wake = center.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { [weak self] _ in
-            Task { @MainActor in
+            Task { @MainActor [weak self] in
                 self?.displays.reload()
                 self?.manager.reconcile(force: true)
             }
@@ -107,10 +107,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func observeSettings() {
         NotificationCenter.default.addObserver(forName: .orielSettingsChanged, object: nil, queue: .main) { [weak self] _ in
-            Task { @MainActor in self?.settingsChanged() }
+            Task { @MainActor [weak self] in self?.settingsChanged() }
         }
         NotificationCenter.default.addObserver(forName: .orielDisplayConfigurationChanged, object: nil, queue: .main) { [weak self] _ in
-            Task { @MainActor in
+            Task { @MainActor [weak self] in
                 self?.refreshMenu()
                 self?.overlays.update()
             }
@@ -148,7 +148,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         showOnboarding()
         guard permissionTimer == nil else { return }
         let timer = Timer(timeInterval: 1.0, repeats: true) { [weak self] _ in
-            Task { @MainActor in
+            Task { @MainActor [weak self] in
                 guard let self else { return }
                 if AX.isTrusted {
                     self.permissionTimer?.invalidate()

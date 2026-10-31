@@ -21,13 +21,13 @@ final class InputMonitor {
         guard AX.isTrusted, monitors.isEmpty else { return }
 
         if let monitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .leftMouseDragged, .leftMouseUp], handler: { [weak self] event in
-            Task { @MainActor in self?.handleMouse(event) }
+            Task { @MainActor [weak self] in self?.handleMouse(event) }
         }) {
             monitors.append(monitor)
         }
 
         let timer = Timer(timeInterval: 0.22, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.pollHover() }
+            Task { @MainActor [weak self] in self?.pollHover() }
         }
         RunLoop.main.add(timer, forMode: .common)
         hoverTimer = timer

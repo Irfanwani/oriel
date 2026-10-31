@@ -56,7 +56,7 @@ final class WindowManager {
         installWorkspaceObservers()
         observeRunningApplications()
         let t = Timer(timeInterval: 1.4, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.reconcile() }
+            Task { @MainActor [weak self] in self?.reconcile() }
         }
         RunLoop.main.add(t, forMode: .common)
         timer = t
@@ -937,7 +937,7 @@ final class WindowManager {
     private func scheduleReconcile(after delay: TimeInterval) {
         pendingWork?.cancel()
         let item = DispatchWorkItem { [weak self] in
-            Task { @MainActor in self?.reconcile() }
+            Task { @MainActor [weak self] in self?.reconcile() }
         }
         pendingWork = item
         DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: item)
@@ -949,38 +949,38 @@ final class WindowManager {
         let center = NSWorkspace.shared.notificationCenter
         let launch = center.addObserver(forName: NSWorkspace.didLaunchApplicationNotification, object: nil, queue: .main) { [weak self] note in
             guard let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else { return }
-            Task { @MainActor in
+            Task { @MainActor [weak self] in
                 self?.observe(pid: app.processIdentifier)
                 self?.scheduleReconcile(after: 0.35)
             }
         }
         let terminate = center.addObserver(forName: NSWorkspace.didTerminateApplicationNotification, object: nil, queue: .main) { [weak self] note in
             guard let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else { return }
-            Task { @MainActor in
+            Task { @MainActor [weak self] in
                 self?.axObservers.removeValue(forKey: app.processIdentifier)
                 self?.scheduleReconcile(after: 0.1)
             }
         }
         let activate = center.addObserver(forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main) { [weak self] _ in
-            Task { @MainActor in self?.updateFocusFromSystem() }
+            Task { @MainActor [weak self] in self?.updateFocusFromSystem() }
         }
         let hide = center.addObserver(forName: NSWorkspace.didHideApplicationNotification, object: nil, queue: .main) { [weak self] _ in
-            Task { @MainActor in self?.scheduleReconcile(after: 0.15) }
+            Task { @MainActor [weak self] in self?.scheduleReconcile(after: 0.15) }
         }
         let unhide = center.addObserver(forName: NSWorkspace.didUnhideApplicationNotification, object: nil, queue: .main) { [weak self] _ in
-            Task { @MainActor in self?.scheduleReconcile(after: 0.15) }
+            Task { @MainActor [weak self] in self?.scheduleReconcile(after: 0.15) }
         }
         let space = center.addObserver(forName: NSWorkspace.activeSpaceDidChangeNotification, object: nil, queue: .main) { [weak self] _ in
-            Task { @MainActor in self?.scheduleReconcile(after: 0.35) }
+            Task { @MainActor [weak self] in self?.scheduleReconcile(after: 0.35) }
         }
         let session = center.addObserver(forName: NSWorkspace.sessionDidBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
-            Task { @MainActor in
+            Task { @MainActor [weak self] in
                 self?.displays.reload()
                 self?.reconcile(force: true)
             }
         }
         let screens = NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { [weak self] _ in
-            Task { @MainActor in
+            Task { @MainActor [weak self] in
                 self?.displays.reload()
                 self?.reconcile(force: true)
                 NotificationCenter.default.post(name: .orielDisplayConfigurationChanged, object: nil)
