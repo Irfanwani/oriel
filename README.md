@@ -18,7 +18,7 @@
 
 Oriel keeps windows in their places as your day changes. Open a window and it gets a tile. Close one and the layout heals itself. There is no canvas to maintain and no subscription to think about.
 
-It is built for macOS 14 and later, runs entirely on your Mac, and uses Accessibility only to read window geometry and move windows.
+It is built for macOS 14 and later, runs entirely on your Mac, and uses Accessibility to read window titles and geometry, and to move windows.
 
 ## Why Oriel
 
@@ -184,7 +184,7 @@ Oriel is deliberately boring about data:
 - window geometry and settings stay in `~/Library/Application Support/Oriel/settings.json`;
 - scenes store app bundle identifiers, window order and floating-window frames — not window contents.
 
-Accessibility access is used only to discover standard windows and set their position and size.
+Accessibility access is used only to discover standard windows, read titles and frames, and set position and size.
 
 ## Build from source
 

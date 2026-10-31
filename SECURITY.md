@@ -30,11 +30,13 @@ Oriel intentionally has a small attack surface:
 - no networking code;
 - no telemetry or analytics;
 - no Screen Recording permission;
-- no Input Monitoring or keyboard event tap;
+- no keyboard event tap or keystroke capture;
 - no third-party dependencies;
 - no app sandbox escape hatch or privileged helper.
 
 Accessibility access is required to discover and reposition windows. The app reads window titles and geometry, and writes frame, raise and main-window attributes. It does not read window contents.
+
+Oriel also observes pointer clicks and drags locally so manual window moves can be retiled and optional hover focus can work. Pointer data is used in memory only and is never written, stored or transmitted.
 
 Settings and scenes are stored locally at:
 
