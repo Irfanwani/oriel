@@ -41,3 +41,22 @@ jobs:
             --generate-notes \
             "dist/Oriel-${VERSION}.dmg" \
             "dist/Oriel-${VERSION}.dmg.sha256"
+
+      - name: Notify Homebrew tap
+        env:
+          TAP_TOKEN: ${{ secrets.TAP_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          if [[ -z "${TAP_TOKEN:-}" ]]; then
+            echo "TAP_TOKEN is not configured; the tap's hourly updater will mirror this release."
+            exit 0
+          fi
+
+          if ! curl -fsS -X POST \
+            -H "Authorization: Bearer ${TAP_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/Irfanwani/homebrew-oriel/dispatches" \
+            -d "{\"event_type\":\"oriel-release\",\"client_payload\":{\"tag\":\"${TAG}\"}}"; then
+            echo "::warning::Could not dispatch the tap updater; the hourly updater will retry."
+          fi
