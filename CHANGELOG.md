@@ -2,11 +2,29 @@
 
 All notable changes to Oriel are documented here. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project follows [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.1.0] - 2026-11-01
+
+### Added
+
+- Drag a tiled window onto another window to swap their positions. Command is no longer required.
+- Drag the gap between the primary tile and the rest of the layout to resize the split.
+- A visible divider grip and a highlighted drop target while dragging.
+- An **Arrange** menu with resize, reset, swap, primary, float and window-cycle actions.
+
+### Fixed
+
+- Resizing now changes the layout in every layout, including Bento and ultrawide Side. Bento's asymmetric proportions and Side's rail range are preserved instead of silently clamping the change.
+- The resize shortcut now reports when tiling is paused, Focus mode is active, or only a single tile is available, instead of claiming a resize that cannot happen.
+- Clicking the desktop or a menu no longer leaves window dragging paused.
+- Moving a window to another display with the swap shortcut now actually crosses the display boundary.
+- Dragging across displays can move a window into another display's layout.
 
 ### Changed
 
 - Version bumps on `main` now create the release tag automatically after tests pass, then publish the app and update the Homebrew tap.
+- Release and local builds read the app version and build number from `Resources/Info.plist`.
+- Homebrew cask updates are dispatched immediately after a release is published.
+- The resize shortcut is described as resizing the main window rather than the active window.
 
 ## [1.0.0] - 2026-10-31
 

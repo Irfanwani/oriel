@@ -16,6 +16,7 @@ final class InputMonitor {
     private var downPoint: CGPoint?
     private var downWindowID: String?
     private var didDrag = false
+    private var dividerDragActive = false
 
     func start() {
         guard AX.isTrusted, monitors.isEmpty else { return }
@@ -38,6 +39,9 @@ final class InputMonitor {
         monitors.removeAll()
         hoverTimer?.invalidate()
         hoverTimer = nil
+        dividerDragActive = false
+        manager.cancelDividerDrag()
+        manager.endUserDrag()
         manager.isUserDragging = false
     }
 
@@ -47,39 +51,78 @@ final class InputMonitor {
             let global = CGEvent(source: nil)?.location ?? .zero
             downPoint = global
             didDrag = false
+            downWindowID = nil
+            dividerDragActive = false
+
+            // A click in the gap between tiles starts a split resize. This is
+            // checked before a window drag because the handle straddles the
+            // layout's primary boundary.
+            if manager.beginDividerDrag(at: global) {
+                dividerDragActive = true
+                return
+            }
+
             if let window = AX.window(at: global) {
                 let pid = AX.pid(of: window)
-                downWindowID = "\(pid)-\(CFHash(window))"
-            } else {
-                downWindowID = nil
+                let id = "\(pid)-\(CFHash(window))"
+                downWindowID = id
+                manager.beginUserDrag(windowID: id)
             }
-            manager.isUserDragging = true
         case .leftMouseDragged:
-            if let downPoint {
-                let global = CGEvent(source: nil)?.location ?? .zero
-                if hypot(global.x - downPoint.x, global.y - downPoint.y) > 12 { didDrag = true }
+            let global = CGEvent(source: nil)?.location ?? .zero
+            if dividerDragActive {
+                manager.updateDividerDrag(to: global)
+                return
+            }
+            if let downPoint,
+               hypot(global.x - downPoint.x, global.y - downPoint.y) > 12 {
+                didDrag = true
+            }
+            if didDrag,
+               let startID = downWindowID,
+               manager.didDragWindowEnoughForRearrange(startID) {
+                let target = manager.dropTarget(at: global, excluding: startID)
+                manager.setDragTarget(target?.id)
+            } else {
+                manager.setDragTarget(nil)
             }
         case .leftMouseUp:
-            manager.isUserDragging = false
             let global = CGEvent(source: nil)?.location ?? .zero
+            if dividerDragActive {
+                manager.endDividerDrag()
+                dividerDragActive = false
+                downPoint = nil
+                downWindowID = nil
+                didDrag = false
+                return
+            }
+
+            let startID = downWindowID
+            let movedWindow = startID.map { manager.didDragWindowEnoughForRearrange($0) } ?? false
+            let target: ManagedWindow?
+            if didDrag, movedWindow, let startID {
+                target = manager.dropTarget(at: global, excluding: startID)
+            } else {
+                target = nil
+            }
+            manager.endUserDrag()
+
             defer {
                 downPoint = nil
                 downWindowID = nil
                 didDrag = false
             }
-            guard didDrag, let startID = downWindowID else {
+
+            guard didDrag else {
                 manager.reconcile()
                 return
             }
-            let commandDown = event.modifierFlags.contains(.command) || NSEvent.modifierFlags.contains(.command)
-            if commandDown, let target = AX.window(at: global) {
-                let pid = AX.pid(of: target)
-                let targetID = "\(pid)-\(CFHash(target))"
-                if targetID != startID {
-                    manager.swapWindows(startID, targetID)
-                    return
-                }
+
+            if movedWindow, let startID, let target,
+               manager.rearrangeWindows(startID, onto: target.id) {
+                return
             }
+
             // A manual move should not leave the desktop untidy.
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) { [weak self] in
                 self?.manager.reconcile(force: true)
@@ -90,7 +133,11 @@ final class InputMonitor {
     }
 
     private func pollHover() {
-        guard prefs.settings.activateOnHover, !manager.isUserDragging, !manager.isPaused else {
+        guard prefs.settings.activateOnHover,
+              !manager.isUserDragging,
+              !manager.isResizingDivider,
+              !manager.isPaused
+        else {
             lastHoverID = nil
             hoverBegan = nil
             return

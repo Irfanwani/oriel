@@ -8,8 +8,8 @@ export DEVELOPER_DIR="${DEVELOPER_DIR:-/Library/Developer/CommandLineTools}"
 SDK="$(xcrun --sdk macosx --show-sdk-path)"
 BUILD_DIR="${BUILD_DIR:-$ROOT/build}"
 APP="$BUILD_DIR/Oriel.app"
-VERSION="${VERSION:-1.0.0}"
-BUILD_NUMBER="${BUILD_NUMBER:-1}"
+VERSION="${VERSION:-$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$ROOT/Resources/Info.plist")}"
+BUILD_NUMBER="${BUILD_NUMBER:-$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$ROOT/Resources/Info.plist")}"
 ARCH="${ARCH:-$(uname -m)}"
 
 if [[ ! -f "$ROOT/Resources/AppIcon.icns" ]]; then

@@ -35,18 +35,30 @@ final class WindowManager {
     private(set) var isNoPeek = false
     private(set) var isCleanSpace = false
     var isUserDragging = false
+    private(set) var dragSourceID: String?
+    private(set) var dragTargetID: String?
     private var focusSnapshot: FocusSnapshot?
-
-    var onStateChange: (() -> Void)?
-    var onFocusChange: (() -> Void)?
-    var onWindowsChanged: (() -> Void)?
-    var onHUD: ((String, String, LayoutKind?) -> Void)?
 
     private struct FocusSnapshot {
         var windowID: String
         var displayUUID: String
         var frames: [String: CGRect]
     }
+
+    private struct DividerDrag {
+        let displayUUID: String
+        let divider: LayoutEngine.Divider
+        let startPoint: CGPoint
+    }
+
+    private var dividerDrag: DividerDrag?
+    private var dragStartFrame: CGRect?
+    var isResizingDivider: Bool { dividerDrag != nil }
+
+    var onStateChange: (() -> Void)?
+    var onFocusChange: (() -> Void)?
+    var onWindowsChanged: (() -> Void)?
+    var onHUD: ((String, String, LayoutKind?) -> Void)?
 
     private init() {}
 
@@ -68,6 +80,11 @@ final class WindowManager {
         timer = nil
         pendingWork?.cancel()
         pendingWork = nil
+        isUserDragging = false
+        dragSourceID = nil
+        dragTargetID = nil
+        dragStartFrame = nil
+        dividerDrag = nil
         for (_, observer) in axObservers {
             CFRunLoopRemoveSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(observer), .defaultMode)
         }
@@ -291,25 +308,69 @@ final class WindowManager {
         displayOrder[active.displayUUID] = ids
         reconcile(force: true)
         activate(active)
+        onHUD?("Primary", active.appName, nil)
     }
 
     func adjustRatio(increase: Bool) {
         guard let display = activeDisplay() ?? displays.primary else { return }
         var setting = prefs.screenSetting(for: display)
-        let delta = increase ? 0.05 : -0.05
-        setting.ratio = min(0.75, max(0.34, setting.ratio + delta))
+        let count = layoutInput(for: display).count
+        guard count > 1 else {
+            onHUD?("Single tile", "Open another tile to resize the split", setting.layout)
+            return
+        }
+        guard !isPaused else {
+            onHUD?("Tiling paused", "Resume tiling to resize windows", setting.layout)
+            return
+        }
+        guard !isFocusMode else {
+            onHUD?("Focus mode", "Leave Focus mode to resize windows", setting.layout)
+            return
+        }
+
+        let input = layoutInput(for: display)
+        let current = LayoutEngine.primaryShare(for: setting.layout, input: input)
+        let range = LayoutEngine.primaryShareRange(for: setting.layout, input: input)
+        let delta: CGFloat = increase ? 0.05 : -0.05
+        let next = min(range.upperBound, max(range.lowerBound, current + delta))
+        guard abs(next - current) > 0.0005 else {
+            onHUD?("Main window \(Int((current * 100).rounded()))%", "\(display.name) · limit", setting.layout)
+            return
+        }
+
+        setting.ratio = Double(LayoutEngine.storedRatio(forPrimaryShare: next,
+                                                        layout: setting.layout,
+                                                        input: input))
         prefs.update { s in s.screenOverrides[display.uuid] = setting }
+        clearStaleInputStateIfNeeded()
         reconcile(force: true)
-        onHUD?("Main window \(Int(setting.ratio * 100))%", display.name, setting.layout)
+        onHUD?("Main window \(Int((next * 100).rounded()))%", display.name, setting.layout)
     }
 
     func resetRatio() {
         guard let display = activeDisplay() ?? displays.primary else { return }
         var setting = prefs.screenSetting(for: display)
+        let count = layoutInput(for: display).count
+        guard count > 1 else {
+            onHUD?("Single tile", "Open another tile to resize the split", setting.layout)
+            return
+        }
+        guard !isPaused else {
+            onHUD?("Tiling paused", "Resume tiling to resize windows", setting.layout)
+            return
+        }
+        guard !isFocusMode else {
+            onHUD?("Focus mode", "Leave Focus mode to resize windows", setting.layout)
+            return
+        }
+
         setting.ratio = prefs.settings.ratio
         prefs.update { s in s.screenOverrides[display.uuid] = setting }
+        let input = layoutInput(for: display)
+        let share = LayoutEngine.primaryShare(for: setting.layout, input: input)
+        clearStaleInputStateIfNeeded()
         reconcile(force: true)
-        onHUD?("Sizes reset", display.name, setting.layout)
+        onHUD?("Sizes reset", "\(display.name) · \(Int((share * 100).rounded()))%", setting.layout)
     }
 
     func focus(windowID: String) {
@@ -317,24 +378,207 @@ final class WindowManager {
         activate(window)
     }
 
-    func swapWindows(_ firstID: String, _ secondID: String) {
-        guard firstID != secondID,
-              let first = windows.first(where: { $0.id == firstID }),
-              let second = windows.first(where: { $0.id == secondID })
+    // MARK: - Direct manipulation
+
+    /// The primary split's grab area for a display. Used by the overlay to
+    /// draw the handle and by InputMonitor to start a resize drag.
+    func mainDivider(for display: DisplayInfo) -> LayoutEngine.Divider? {
+        guard orderedWindows(for: display).count > 1 else { return nil }
+        let setting = prefs.screenSetting(for: display)
+        return LayoutEngine.mainDivider(for: setting.layout, input: layoutInput(for: display))
+    }
+
+    func beginDividerDrag(at point: CGPoint) -> Bool {
+        guard !isPaused, !isFocusMode else { return false }
+        guard let display = display(containing: point),
+              let divider = mainDivider(for: display),
+              divider.hitRect.contains(point)
+        else { return false }
+
+        dividerDrag = DividerDrag(displayUUID: display.uuid, divider: divider, startPoint: point)
+        isUserDragging = false
+        dragSourceID = nil
+        dragTargetID = nil
+        onFocusChange?()
+        return true
+    }
+
+    func updateDividerDrag(to point: CGPoint) {
+        guard let drag = dividerDrag,
+              let display = displays.display(withUUID: drag.displayUUID)
         else { return }
-        guard first.displayUUID == second.displayUUID else {
-            onHUD?("Different screens", "Drag the window onto the other screen first", nil)
+
+        let delta: CGFloat
+        switch drag.divider.axis {
+        case .vertical: delta = point.x - drag.startPoint.x
+        case .horizontal: delta = point.y - drag.startPoint.y
+        }
+        let share = min(drag.divider.shareRange.upperBound,
+                        max(drag.divider.shareRange.lowerBound,
+                            drag.divider.startShare + delta / drag.divider.availableSpan))
+        let setting = prefs.screenSetting(for: display)
+        let input = layoutInput(for: display)
+        let current = LayoutEngine.primaryShare(for: setting.layout, input: input)
+        guard abs(share - current) > 0.0005 else { return }
+
+        let stored = LayoutEngine.storedRatio(forPrimaryShare: share,
+                                              layout: setting.layout,
+                                              input: input)
+        prefs.setScreenRatio(Double(stored), for: display)
+        applyLayout()
+    }
+
+    func endDividerDrag() {
+        guard let drag = dividerDrag,
+              let display = displays.display(withUUID: drag.displayUUID)
+        else {
+            dividerDrag = nil
             return
         }
-        guard var ids = displayOrder[first.displayUUID],
-              let a = ids.firstIndex(of: firstID),
-              let b = ids.firstIndex(of: secondID)
-        else { return }
-        ids.swapAt(a, b)
-        displayOrder[first.displayUUID] = ids
+        dividerDrag = nil
+        let setting = prefs.screenSetting(for: display)
+        let input = layoutInput(for: display)
+        let share = LayoutEngine.primaryShare(for: setting.layout, input: input)
         reconcile(force: true)
-        activate(first)
-        onHUD?("Swapped", "\(first.appName) ↔ \(second.appName)", nil)
+        onHUD?("Main window \(Int((share * 100).rounded()))%", display.name, setting.layout)
+    }
+
+    func cancelDividerDrag() {
+        dividerDrag = nil
+    }
+
+    func beginUserDrag(windowID: String) {
+        guard let window = windows.first(where: { $0.id == windowID }) else { return }
+        isUserDragging = true
+        dragSourceID = window.isFloating ? nil : windowID
+        dragStartFrame = AX.frame(of: window.element) ?? window.frame
+        if dragTargetID != nil {
+            dragTargetID = nil
+            onFocusChange?()
+        }
+    }
+
+    func endUserDrag() {
+        isUserDragging = false
+        dragSourceID = nil
+        dragStartFrame = nil
+        if dragTargetID != nil {
+            dragTargetID = nil
+            onFocusChange?()
+        }
+    }
+
+    /// A drag that starts inside a window is not necessarily a window drag.
+    /// Sliders, text selections and scrollbars also begin with a click on a
+    /// managed window. Only rearrange when the window itself actually moved.
+    func didDragWindowEnoughForRearrange(_ windowID: String) -> Bool {
+        guard let window = windows.first(where: { $0.id == windowID }),
+              let start = dragStartFrame,
+              let current = AX.frame(of: window.element)
+        else { return false }
+        let moved = abs(current.minX - start.minX) > 8 ||
+                    abs(current.minY - start.minY) > 8
+        // Resizing from the left or top edge moves the origin while keeping
+        // the opposite edge fixed. Don't treat that as a window drag.
+        let leftEdgeResize = abs((current.minX - start.minX) +
+                                 (current.width - start.width)) < 4
+        let topEdgeResize = abs((current.minY - start.minY) +
+                                (current.height - start.height)) < 4
+        return moved && !leftEdgeResize && !topEdgeResize
+    }
+
+    func setDragTarget(_ id: String?) {
+        guard dragSourceID != nil else {
+            if dragTargetID != nil {
+                dragTargetID = nil
+                onFocusChange?()
+            }
+            return
+        }
+        let resolved = id.flatMap { candidate in
+            windows.first { $0.id == candidate && !$0.isFloating && $0.id != (dragSourceID ?? "") }?.id
+        }
+        guard dragTargetID != resolved else { return }
+        dragTargetID = resolved
+        onFocusChange?()
+    }
+
+    /// Finds the tiled window under a drop point. The dragged window follows
+    /// the cursor, so relying on an Accessibility hit test would usually
+    /// return the drag source itself. Looking at the managed frames and
+    /// excluding the source is more reliable.
+    func dropTarget(at point: CGPoint, excluding sourceID: String) -> ManagedWindow? {
+        guard let display = display(containing: point) else { return nil }
+        let candidates = windows.filter {
+            $0.id != sourceID && !$0.isFloating && $0.displayUUID == display.uuid
+        }
+        let exact = candidates.filter { $0.frame.contains(point) }
+        if !exact.isEmpty {
+            return exact.max { orderRank(for: $0) < orderRank(for: $1) }
+        }
+        let near = candidates.filter { $0.frame.insetBy(dx: -10, dy: -10).contains(point) }
+        return near.min { lhs, rhs in
+            distance(from: point, to: lhs.frame) < distance(from: point, to: rhs.frame)
+        }
+    }
+
+    func canRearrange(_ sourceID: String, _ targetID: String) -> Bool {
+        guard sourceID != targetID,
+              let source = windows.first(where: { $0.id == sourceID }),
+              let target = windows.first(where: { $0.id == targetID }),
+              !source.isFloating, !target.isFloating,
+              displayOrder[source.displayUUID]?.contains(sourceID) == true,
+              displayOrder[target.displayUUID]?.contains(targetID) == true
+        else { return false }
+        return true
+    }
+
+    @discardableResult
+    func rearrangeWindows(_ sourceID: String, onto targetID: String) -> Bool {
+        guard canRearrange(sourceID, targetID),
+              let source = windows.first(where: { $0.id == sourceID }),
+              let target = windows.first(where: { $0.id == targetID })
+        else { return false }
+
+        let result: (String, String)
+        if source.displayUUID == target.displayUUID {
+            guard var ids = displayOrder[source.displayUUID],
+                  let a = ids.firstIndex(of: sourceID),
+                  let b = ids.firstIndex(of: targetID)
+            else { return false }
+            ids.swapAt(a, b)
+            displayOrder[source.displayUUID] = ids
+            result = ("Swapped", "\(source.appName) ↔ \(target.appName)")
+        } else {
+            guard let targetDisplay = displays.display(withUUID: target.displayUUID) else { return false }
+            // Move the source physically onto the destination display before
+            // rediscovery, otherwise reconcile would put it back where it was.
+            guard AX.setFrame(target.frame, of: source.element) else { return false }
+            displayOrder[source.displayUUID]?.removeAll { $0 == sourceID }
+            var ids = displayOrder[target.displayUUID] ?? []
+            ids.removeAll { $0 == sourceID }
+            if let index = ids.firstIndex(of: targetID) {
+                ids.insert(sourceID, at: index)
+            } else {
+                ids.append(sourceID)
+            }
+            displayOrder[target.displayUUID] = ids
+            result = ("Moved", "\(source.appName) → \(targetDisplay.name)")
+        }
+
+        dragSourceID = nil
+        dragTargetID = nil
+        isUserDragging = false
+        reconcile(force: true)
+        if let fresh = windows.first(where: { $0.id == sourceID }) {
+            activate(fresh)
+        }
+        onHUD?(result.0, result.1, nil)
+        return true
+    }
+
+    func swapWindows(_ firstID: String, _ secondID: String) {
+        rearrangeWindows(firstID, onto: secondID)
     }
 
     func orderedWindowsForDisplay(_ display: DisplayInfo) -> [ManagedWindow] {
@@ -484,6 +728,7 @@ final class WindowManager {
     // MARK: - Reconciliation
 
     func reconcile(force: Bool = false) {
+        clearStaleInputStateIfNeeded()
         guard AX.isTrusted, !isReconciling, !isUserDragging else {
             if DebugLog.isEnabled, !AX.isTrusted || isUserDragging {
                 DebugLog.write("reconcile skipped trusted=\(AX.isTrusted) dragging=\(isUserDragging) reconciling=\(isReconciling)")
@@ -687,14 +932,7 @@ final class WindowManager {
             let capacity = effectiveCapacity(for: display)
             let tileCount = min(capacity, ordered.count)
             guard tileCount > 0 else { continue }
-            let input = LayoutEngine.Input(
-                bounds: display.visibleFrame,
-                count: tileCount,
-                ratio: CGFloat(screenSettings.ratio),
-                gap: CGFloat(prefs.settings.gap),
-                isUltrawide: display.isUltrawide,
-                isVertical: display.isVertical
-            )
+            let input = layoutInput(for: display)
             let frames = LayoutEngine.frames(for: screenSettings.layout, input: input)
             guard !frames.isEmpty else { continue }
 
@@ -789,6 +1027,57 @@ final class WindowManager {
         return min(requested, setting.layout.maxTiles(on: display))
     }
 
+    private func layoutInput(for display: DisplayInfo) -> LayoutEngine.Input {
+        let setting = prefs.screenSetting(for: display)
+        let tileCount = max(1, min(effectiveCapacity(for: display),
+                                   max(1, orderedWindows(for: display).count)))
+        return LayoutEngine.Input(
+            bounds: display.visibleFrame,
+            count: tileCount,
+            ratio: CGFloat(setting.ratio),
+            gap: CGFloat(prefs.settings.gap),
+            isUltrawide: display.isUltrawide,
+            isVertical: display.isVertical
+        )
+    }
+
+    private func display(containing point: CGPoint) -> DisplayInfo? {
+        if let display = displays.displays.first(where: { $0.frame.contains(point) }) {
+            return display
+        }
+        return displays.display(containing: CGRect(x: point.x, y: point.y, width: 1, height: 1))
+    }
+
+    private func orderRank(for window: ManagedWindow) -> Int {
+        displayOrder[window.displayUUID]?.firstIndex(of: window.id) ?? -1
+    }
+
+    private func distance(from point: CGPoint, to rect: CGRect) -> CGFloat {
+        let dx = max(max(rect.minX - point.x, 0), point.x - rect.maxX)
+        let dy = max(max(rect.minY - point.y, 0), point.y - rect.maxY)
+        return hypot(dx, dy)
+    }
+
+    private func clearStaleInputStateIfNeeded() {
+        guard NSEvent.pressedMouseButtons == 0 else { return }
+        let hadDivider = dividerDrag != nil
+        let hadDrag = dragSourceID != nil || dragTargetID != nil
+        if hadDivider {
+            dividerDrag = nil
+        }
+        if isUserDragging {
+            isUserDragging = false
+        }
+        if hadDrag {
+            dragSourceID = nil
+            dragTargetID = nil
+            dragStartFrame = nil
+        }
+        if hadDivider || hadDrag {
+            onFocusChange?()
+        }
+    }
+
     private func directionalNeighbor(of window: ManagedWindow, in list: [ManagedWindow], direction: SwapDirection) -> ManagedWindow? {
         let origin = CGPoint(x: window.frame.midX, y: window.frame.midY)
         let candidates = list.filter { $0.id != window.id }
@@ -829,10 +1118,23 @@ final class WindowManager {
             abs($0.frame.midX - current.frame.midX) + abs($0.frame.midY - current.frame.midY) <
             abs($1.frame.midX - current.frame.midX) + abs($1.frame.midY - current.frame.midY)
         }) else { return }
+        // Move the frame across the display boundary first. Discovery assigns
+        // windows to a display by frame, so changing only the order would put
+        // the window straight back where it started.
+        let width = min(window.frame.width, destination.visibleFrame.width - 16)
+        let height = min(window.frame.height, destination.visibleFrame.height - 16)
+        let target = CGRect(x: destination.visibleFrame.midX - width / 2,
+                            y: destination.visibleFrame.midY - height / 2,
+                            width: max(180, width),
+                            height: max(100, height))
+        guard AX.setFrame(target, of: window.element) else { return }
         displayOrder[current.uuid]?.removeAll { $0 == window.id }
         displayOrder[destination.uuid, default: []].append(window.id)
+        isUserDragging = false
         reconcile(force: true)
-        activate(window)
+        if let fresh = windows.first(where: { $0.id == window.id }) {
+            activate(fresh)
+        }
         onHUD?("Moved", "\(window.appName) → \(destination.name)", nil)
     }
 

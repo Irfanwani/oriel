@@ -309,7 +309,7 @@ extension Notification.Name {
 
 extension Bundle {
     var appVersion: String {
-        infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
+        infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.1.0"
     }
     var buildVersion: String {
         infoDictionary?["CFBundleVersion"] as? String ?? "1"

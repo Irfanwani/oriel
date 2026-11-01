@@ -251,6 +251,73 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         countItem.submenu = countMenu
         menu.addItem(countItem)
+
+        let arrangeItem = NSMenuItem(title: "Arrange", action: nil, keyEquivalent: "")
+        let arrangeMenu = NSMenu()
+        let arrangeHint = NSMenuItem(title: "Drag a window onto another to swap. Drag a gap to resize.",
+                                     action: nil, keyEquivalent: "")
+        arrangeHint.isEnabled = false
+        arrangeMenu.addItem(arrangeHint)
+        arrangeMenu.addItem(.separator())
+
+        let biggerItem = NSMenuItem(title: "Make Main Window Bigger",
+                                    action: #selector(makeBigger), keyEquivalent: "=")
+        biggerItem.target = self
+        biggerItem.keyEquivalentModifierMask = prefs.settings.shortcutPrefix.modifierFlags
+        arrangeMenu.addItem(biggerItem)
+
+        let smallerItem = NSMenuItem(title: "Make Main Window Smaller",
+                                     action: #selector(makeSmaller), keyEquivalent: "-")
+        smallerItem.target = self
+        smallerItem.keyEquivalentModifierMask = prefs.settings.shortcutPrefix.modifierFlags
+        arrangeMenu.addItem(smallerItem)
+
+        let resetItem = NSMenuItem(title: "Reset Window Sizes",
+                                   action: #selector(resetSizes), keyEquivalent: "0")
+        resetItem.target = self
+        resetItem.keyEquivalentModifierMask = prefs.settings.shortcutPrefix.modifierFlags
+        arrangeMenu.addItem(resetItem)
+        arrangeMenu.addItem(.separator())
+
+        let swaps: [(String, Selector, String)] = [
+            ("Swap with Window on the Left", #selector(swapLeftAction), "←"),
+            ("Swap with Window on the Right", #selector(swapRightAction), "→"),
+            ("Swap with Window Above", #selector(swapUpAction), "↑"),
+            ("Swap with Window Below", #selector(swapDownAction), "↓")
+        ]
+        for (title, action, glyph) in swaps {
+            let item = NSMenuItem(title: title, action: action, keyEquivalent: "")
+            item.target = self
+            item.toolTip = "\(prefs.settings.shortcutPrefix.displayGlyphs)\(glyph)"
+            arrangeMenu.addItem(item)
+        }
+        arrangeMenu.addItem(.separator())
+
+        let primaryItem = NSMenuItem(title: "Make Active Window Primary",
+                                     action: #selector(makePrimary), keyEquivalent: "")
+        primaryItem.target = self
+        arrangeMenu.addItem(primaryItem)
+
+        let floatItem = NSMenuItem(title: "Float or Tile Active Window",
+                                   action: #selector(toggleFloatAction), keyEquivalent: "f")
+        floatItem.target = self
+        floatItem.keyEquivalentModifierMask = prefs.settings.shortcutPrefix.modifierFlags
+        arrangeMenu.addItem(floatItem)
+
+        let nextWindowItem = NSMenuItem(title: "Activate Next Window",
+                                        action: #selector(nextWindowAction), keyEquivalent: "]")
+        nextWindowItem.target = self
+        nextWindowItem.keyEquivalentModifierMask = prefs.settings.shortcutPrefix.modifierFlags
+        arrangeMenu.addItem(nextWindowItem)
+
+        let previousWindowItem = NSMenuItem(title: "Activate Previous Window",
+                                            action: #selector(previousWindowAction), keyEquivalent: "[")
+        previousWindowItem.target = self
+        previousWindowItem.keyEquivalentModifierMask = prefs.settings.shortcutPrefix.modifierFlags
+        arrangeMenu.addItem(previousWindowItem)
+
+        arrangeItem.submenu = arrangeMenu
+        menu.addItem(arrangeItem)
         menu.addItem(.separator())
 
         let overviewItem = NSMenuItem(title: "Overview", action: #selector(showOverview), keyEquivalent: "")
@@ -382,6 +449,50 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func retile() {
         manager.retile()
+    }
+
+    @objc private func makeBigger() {
+        manager.adjustRatio(increase: true)
+    }
+
+    @objc private func makeSmaller() {
+        manager.adjustRatio(increase: false)
+    }
+
+    @objc private func resetSizes() {
+        manager.resetRatio()
+    }
+
+    @objc private func swapLeftAction() {
+        manager.swapActive(direction: .left)
+    }
+
+    @objc private func swapRightAction() {
+        manager.swapActive(direction: .right)
+    }
+
+    @objc private func swapUpAction() {
+        manager.swapActive(direction: .up)
+    }
+
+    @objc private func swapDownAction() {
+        manager.swapActive(direction: .down)
+    }
+
+    @objc private func makePrimary() {
+        manager.makeActivePrimary()
+    }
+
+    @objc private func toggleFloatAction() {
+        manager.toggleActiveWindowFloat()
+    }
+
+    @objc private func nextWindowAction() {
+        manager.activateNextWindow()
+    }
+
+    @objc private func previousWindowAction() {
+        manager.activateNextWindow(backwards: true)
     }
 
     @objc private func togglePause() {

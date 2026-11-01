@@ -122,6 +122,85 @@ final class LayoutEngineTests: XCTestCase {
         XCTAssertGreaterThan(frames[0].height, frames[1].height)
         XCTAssertEqual(frames[1].minY, frames[2].minY, accuracy: 0.01)
     }
+
+    func testBentoHonorsRatioAndStaysAsymmetric() {
+        let half = LayoutEngine.frames(for: .bento, input: input(count: 3, ratio: 0.5, gap: 8))
+        let larger = LayoutEngine.frames(for: .bento, input: input(count: 3, ratio: 0.6, gap: 8))
+        XCTAssertGreaterThan(larger[0].width, half[0].width)
+
+        let content = bounds.insetBy(dx: 8, dy: 8)
+        let available = content.width - 8
+        XCTAssertEqual(half[0].width / available, 0.62, accuracy: 0.01)
+    }
+
+    func testBentoResizesFromALowStoredRatio() {
+        let small = LayoutEngine.frames(for: .bento, input: input(count: 4, ratio: 0.34, gap: 3))
+        let bigger = LayoutEngine.frames(for: .bento, input: input(count: 4, ratio: 0.39, gap: 3))
+        XCTAssertGreaterThan(bigger[0].height, small[0].height)
+    }
+
+    func testSideUltrawideRatioMovesTheRail() {
+        let narrow = LayoutEngine.frames(for: .side, input: input(count: 5, ratio: 0.5, gap: 8, isUltrawide: true))
+        let wide = LayoutEngine.frames(for: .side, input: input(count: 5, ratio: 0.6, gap: 8, isUltrawide: true))
+        XCTAssertGreaterThan(wide[0].width, narrow[0].width)
+        XCTAssertLessThan(wide[2].width, narrow[2].width)
+    }
+
+    func testPrimaryShareRoundTripsThroughStoredRatio() {
+        for layout in LayoutKind.allCases {
+            let base = input(count: 3, ratio: 0.5, gap: 8, isUltrawide: layout == .side)
+            let range = LayoutEngine.primaryShareRange(for: layout, input: base)
+            let samples = [range.lowerBound, (range.lowerBound + range.upperBound) / 2, range.upperBound]
+            for share in samples {
+                let stored = LayoutEngine.storedRatio(forPrimaryShare: share, layout: layout, input: base)
+                var restoredInput = base
+                restoredInput.ratio = stored
+                XCTAssertEqual(LayoutEngine.primaryShare(for: layout, input: restoredInput),
+                               share, accuracy: 0.002, "\(layout) \(share)")
+            }
+        }
+    }
+
+    func testMainDividerSitsInTheGapAtThePrimarySplit() {
+        let input = input(count: 3, ratio: 0.6, gap: 8)
+        guard let divider = LayoutEngine.mainDivider(for: .columns, input: input) else {
+            return XCTFail("Expected a divider")
+        }
+        XCTAssertEqual(divider.axis, .vertical)
+        XCTAssertEqual(divider.startShare, 0.6, accuracy: 0.001)
+        XCTAssertEqual(divider.hitRect.width, 8, accuracy: 0.001)
+
+        let content = bounds.insetBy(dx: 8, dy: 8)
+        let available = content.width - 16
+        XCTAssertEqual(divider.hitRect.midX, content.minX + available * 0.6 + 4, accuracy: 0.01)
+        XCTAssertEqual(divider.availableSpan, available, accuracy: 0.01)
+    }
+
+    func testRowsDividerUsesTheWholePrimarySpan() {
+        let input = input(count: 3, ratio: 0.55, gap: 8)
+        guard let divider = LayoutEngine.mainDivider(for: .rows, input: input) else {
+            return XCTFail("Expected a divider")
+        }
+        XCTAssertEqual(divider.axis, .horizontal)
+        let content = bounds.insetBy(dx: 8, dy: 8)
+        let available = content.height - 16
+        XCTAssertEqual(divider.availableSpan, available, accuracy: 0.01)
+        XCTAssertEqual(divider.hitRect.midY, content.minY + available * 0.55 + 4, accuracy: 0.01)
+    }
+
+    func testBentoDividerFollowsTheBandSplit() {
+        let input = input(count: 4, ratio: 0.5, gap: 8)
+        guard let divider = LayoutEngine.mainDivider(for: .bento, input: input) else {
+            return XCTFail("Expected a divider")
+        }
+        XCTAssertEqual(divider.axis, .horizontal)
+        XCTAssertEqual(divider.startShare, 0.62, accuracy: 0.001)
+    }
+
+    func testMainDividerRequiresMultipleTilesAndAGap() {
+        XCTAssertNil(LayoutEngine.mainDivider(for: .grid, input: input(count: 1, ratio: 0.5, gap: 8)))
+        XCTAssertNil(LayoutEngine.mainDivider(for: .grid, input: input(count: 2, ratio: 0.5, gap: 0)))
+    }
 }
 
 final class SettingsTests: XCTestCase {

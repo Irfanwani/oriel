@@ -379,7 +379,7 @@ struct SettingsView: View {
                 }
                 Divider().padding(.vertical, 2)
                 SettingsRow(title: "Main window size",
-                            subtitle: "The primary window's share of the screen.") {
+                            subtitle: "The primary tile's share. Bento and ultrawide Side map this to their own proportions.") {
                     Picker("", selection: Binding(
                         get: { prefs.settings.ratio },
                         set: { value in

@@ -54,15 +54,15 @@ No manual tag is required. If the version tag and release already exist, or the 
 A manually pushed tag is still supported, as long as the tag matches `Resources/Info.plist`:
 
 ```sh
-git tag -a v1.0.1 -m "Oriel 1.0.1"
-git push origin v1.0.1
+git tag -a v1.1.0 -m "Oriel 1.1.0"
+git push origin v1.1.0
 ```
 
 - If **Auto release** failed before creating the tag, run it manually from **Actions → Auto release → Run workflow** on `main`.
 - If the tag exists but the release is missing or failed, run the release workflow on that tag:
 
   ```sh
-  gh workflow run release.yml --ref v1.0.1
+  gh workflow run release.yml --ref v1.1.0
   ```
 
 - Re-running **Release** for an already published tag is a no-op; it will not rebuild or replace release assets.
@@ -75,7 +75,7 @@ Manual update from the tap checkout:
 
 ```sh
 ./scripts/update-cask.sh          # latest stable release
-./scripts/update-cask.sh v1.0.1   # a specific tag
+./scripts/update-cask.sh v1.1.0   # a specific tag
 ```
 
 The updater reads the release SHA256, validates it against `Oriel-<version>.dmg.sha256`, and only changes the cask when needed. After a manual edit to the cask, run the **Test cask** workflow or push normally; that workflow audits and installs the cask.

@@ -41,7 +41,7 @@ This installs **Oriel.app** in `/Applications` and the **`oriel`** command in Ho
 
 ### Manual download
 
-1. Download the latest `Oriel-1.0.0.dmg` from [Releases](https://github.com/Irfanwani/oriel/releases/latest).
+1. Download the latest `Oriel-1.1.0.dmg` from [Releases](https://github.com/Irfanwani/oriel/releases/latest).
 2. Open the DMG and drag **Oriel.app** into **Applications**.
 3. Launch Oriel and grant Accessibility when asked.
 
@@ -73,6 +73,12 @@ After access is granted, choose a layout for your first display. Oriel starts ti
 
 Every display can have its own layout and capacity. Extra windows stack in the last tile, or float over the layout if you prefer. Empty space is never left behind: closing a window reflows the rest.
 
+### Resize and rearrange
+
+- **Drag a window onto another window** to swap their tiles. Drop it on a window on another display to move it there.
+- **Drag the gap** between the main tile and the rest of the layout to resize the split. A small grip marks the handle.
+- Use the **Arrange** menu for the same actions, or the shortcuts below.
+
 <img src="docs/settings.png" width="850" alt="Oriel settings">
 
 ### The menu bar
@@ -80,6 +86,7 @@ Every display can have its own layout and capacity. Extra windows stack in the l
 Click the Oriel icon to:
 
 - choose a layout and how many windows share the screen;
+- resize and rearrange windows from the **Arrange** menu;
 - open **Overview**, **Focus**, **No Peek** or **Clean Space**;
 - save and restore scenes;
 - pause tiling, retile manually, or change login behavior;
@@ -123,7 +130,7 @@ The default prefix is **⌃⌥** (Control + Option). You can switch to **⌥⌘*
 | Action | Shortcut |
 | --- | --- |
 | Swap with window left / right / up / down | `⌃⌥←` `⌃⌥→` `⌃⌥↑` `⌃⌥↓` |
-| Make active window bigger / smaller | `⌃⌥=` / `⌃⌥-` |
+| Make main window bigger / smaller | `⌃⌥=` / `⌃⌥-` |
 | Reset window sizes | `⌃⌥0` |
 | Next / previous window | `⌃⌥]` / `⌃⌥[` |
 | Next / previous window in stack | <code>⌃⌥&#96;</code> / <code>⌃⌥⇧&#96;</code> |
@@ -136,7 +143,9 @@ The default prefix is **⌃⌥** (Control + Option). You can switch to **⌥⌘*
 | Overview | `⌃⌥Space` |
 | Tile 1–5 windows | `⌃⌥1` … `⌃⌥5` |
 
-Shortcuts are registered with macOS. Oriel does not install a keyboard event tap.
+Shortcuts are registered with macOS. Oriel does not install a keyboard event tap. For direct manipulation, drag a window onto another to swap, or drag the gap between tiles to resize the main split.
+
+If tiling is paused, Focus mode is active, or only one tile is on the screen, the resize shortcuts show a short explanation instead of silently doing nothing.
 
 ## CLI and URL automation
 
@@ -204,7 +213,7 @@ ARCH=universal ./scripts/build.sh  # universal app
 ARCH=universal ./scripts/package.sh # DMG + SHA256
 ```
 
-The app is written directly against AppKit and SwiftUI; there are no third-party dependencies. `scripts/build.sh` copies the icon and Info.plist, compiles the app, and ad-hoc signs the bundle. `scripts/package.sh` produces `dist/Oriel-1.0.0.dmg` and a matching `.sha256` file.
+The app is written directly against AppKit and SwiftUI; there are no third-party dependencies. `scripts/build.sh` copies the icon and Info.plist, compiles the app, and ad-hoc signs the bundle. `scripts/package.sh` produces `dist/Oriel-1.1.0.dmg` and a matching `.sha256` file.
 
 The package target intentionally contains only the testable Core module. The UI and app lifecycle are compiled by the release script so the repository can be built with Command Line Tools alone.
 

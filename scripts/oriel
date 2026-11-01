@@ -76,7 +76,7 @@ case "${1:-}" in
     open_url "$1"
     ;;
   version|--version)
-    echo "Oriel CLI 1.0.0"
+    echo "Oriel CLI 1.1.0"
     ;;
   ""|-h|--help|help)
     usage
